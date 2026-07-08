@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>디카 스토어</title>
+<meta property="og:title" content="디카 스토어 — 명함 속 진열대">
+<meta property="og:description" content="지금 판매 중인 상품을 확인하세요">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<style>
+@font-face{font-family:'GmarketSans';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff') format('woff');font-weight:700;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');font-weight:400;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Medium.woff') format('woff');font-weight:500;font-display:swap}
+@font-face{font-family:'Pretendard';src:url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Bold.woff') format('woff');font-weight:700;font-display:swap}
+
+:root{
+  --bg:#F6F4EE;         /* 진열대 종이색 */
+  --card:#FFFFFF;
+  --ink:#17150F;
+  --ink-soft:#6E6A5E;
+  --line:#E6E2D6;
+  --accent:#FF5C38;     /* 시장 가격표 주황 */
+  --accent-ink:#FFFFFF;
+  --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo',sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;padding-bottom:110px}
+.wrap{max-width:480px;margin:0 auto;padding:0 16px}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+img{display:block}
+
+/* ── 헤더 ── */
+header{padding:26px 0 18px;border-bottom:1px solid var(--line)}
+.brand{font-size:11px;letter-spacing:.22em;color:var(--accent);font-weight:700;margin-bottom:10px}
+.store-name{font-family:'GmarketSans',sans-serif;font-size:26px;line-height:1.25;word-break:keep-all}
+.store-desc{margin-top:8px;font-size:14px;color:var(--ink-soft);line-height:1.55;word-break:keep-all;white-space:pre-line}
+.head-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:12.5px;font-weight:500;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink)}
+.chip.on{border-color:var(--ink);font-weight:700}
+
+/* ── 상품 그리드 ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 0}
+.card{background:var(--card);border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);position:relative;cursor:pointer;transition:transform .12s ease}
+.card:active{transform:scale(.98)}
+.card .thumb{position:relative;width:100%;aspect-ratio:1/1;background:#EDEBE3;overflow:hidden}
+.card .thumb img{width:100%;height:100%;object-fit:cover}
+.card.sold .thumb img{filter:grayscale(1) brightness(.92)}
+.stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-9deg);border:2.5px solid var(--accent);color:var(--accent);font-family:'GmarketSans';font-size:17px;padding:5px 14px;border-radius:6px;background:rgba(255,255,255,.86);letter-spacing:.1em}
+.badge-exp{position:absolute;top:8px;left:8px;background:var(--ink);color:#fff;font-size:10.5px;padding:4px 9px;border-radius:999px;font-weight:700}
+.card .body{padding:11px 12px 13px}
+.card .title{font-size:14px;font-weight:700;line-height:1.35;word-break:keep-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 시그니처: 꼬리표 모양 가격 태그 */
+.price-tag{display:inline-block;margin-top:8px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;padding:4px 10px 4px 12px;clip-path:polygon(7px 0,100% 0,100% 100%,7px 100%,0 50%);}
+.price-tag.free{background:var(--ink)}
+
+/* ── 빈 화면 ── */
+.empty{padding:70px 20px;text-align:center;color:var(--ink-soft)}
+.empty .big{font-family:'GmarketSans';font-size:19px;color:var(--ink);margin-bottom:10px}
+.empty p{font-size:14px;line-height:1.6}
+
+/* ── 상세/작성 시트 ── */
+.overlay{position:fixed;inset:0;background:rgba(23,21,15,.5);display:none;z-index:50;backdrop-filter:blur(2px)}
+.overlay.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;z-index:51;transform:translateY(105%);transition:transform .26s cubic-bezier(.3,.9,.3,1);max-height:92dvh;overflow-y:auto;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.sheet.show{transform:translateY(0)}
+.sheet .grab{width:40px;height:4px;border-radius:99px;background:var(--line);margin:12px auto 4px}
+.sheet-inner{padding:12px 20px 8px}
+
+/* 상세 */
+#dImg{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;background:#EDEBE3}
+#dTitle{font-family:'GmarketSans';font-size:21px;margin-top:16px;line-height:1.3;word-break:keep-all}
+#dPrice{margin-top:10px}
+#dDesc{margin-top:12px;font-size:14.5px;line-height:1.7;color:var(--ink);white-space:pre-line;word-break:keep-all}
+.buy-btn{display:flex;align-items:center;justify-content:center;width:100%;margin-top:20px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;padding:16px;border-radius:14px;text-decoration:none}
+.owner-row{display:flex;gap:8px;margin-top:12px}
+.owner-row .chip{flex:1;text-align:center;padding:12px}
+.chip.danger{color:var(--accent);border-color:var(--accent)}
+
+/* 작성 폼 */
+.f-label{font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:16px 0 6px;display:block}
+.f-input,.f-area,.f-select{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:13px 14px;font-size:15px;font-family:inherit;background:#FCFBF8;color:var(--ink)}
+.f-input:focus,.f-area:focus,.f-select:focus{outline:none;border-color:var(--ink)}
+.f-area{min-height:90px;resize:vertical}
+.photo-pick{width:100%;aspect-ratio:16/10;border:1.5px dashed var(--line);border-radius:14px;background:#FCFBF8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--ink-soft);font-size:14px;overflow:hidden;position:relative}
+.photo-pick img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.submit-btn{width:100%;margin-top:22px;background:var(--ink);color:#fff;font-size:16px;font-weight:700;padding:16px;border-radius:14px}
+.submit-btn:disabled{opacity:.45}
+.hint{font-size:12px;color:var(--ink-soft);margin-top:5px;line-height:1.5}
+
+/* FAB */
+.fab{position:fixed;right:calc(50% - 240px + 16px);bottom:24px;z-index:40;background:var(--ink);color:#fff;border-radius:999px;padding:15px 22px;font-size:15px;font-weight:700;box-shadow:0 8px 24px rgba(23,21,15,.28);display:none;align-items:center;gap:7px}
+@media(max-width:512px){.fab{right:16px}}
+.fab.show{display:flex}
+
+/* 푸터 */
+footer{margin-top:30px;padding:22px 0 30px;border-top:1px solid var(--line);text-align:center}
+footer .foot-brand{font-family:'GmarketSans';font-size:13px;letter-spacing:.06em}
+footer .foot-sub{font-size:11.5px;color:var(--ink-soft);margin-top:5px}
+footer .manage{margin-top:14px;font-size:12px;color:var(--ink-soft);text-decoration:underline}
+
+/* 토스트 */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13.5px;padding:11px 20px;border-radius:999px;opacity:0;transition:opacity .2s;z-index:99;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+
+/* 개설 화면 */
+.setup{padding:56px 8px;text-align:center}
+.setup h2{font-family:'GmarketSans';font-size:22px;line-height:1.4;word-break:keep-all}
+.setup p{margin-top:10px;font-size:14px;color:var(--ink-soft);line-height:1.6}
+.setup .f-input{margin-top:20px;text-align:left}
+.google-btn{display:inline-flex;align-items:center;gap:9px;margin-top:22px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:13px 22px;font-size:15px;font-weight:500}
+.google-btn img{width:18px;height:18px}
+.loading{padding:80px 0;text-align:center;color:var(--ink-soft);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div id="loading" class="loading">불러오는 중…</div>
+
+  <div id="storeView" style="display:none">
+    <header>
+      <div class="brand">DiCA STORE</div>
+      <h1 class="store-name" id="storeName"></h1>
+      <p class="store-desc" id="storeDesc"></p>
+      <div class="head-actions">
+        <button class="chip" id="shareBtn">🔗 링크 복사</button>
+        <button class="chip" id="ownerBadge" style="display:none">✓ 내 스토어 · 로그아웃</button>
+      </div>
+    </header>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="empty" id="empty" style="display:none">
+      <div class="big">아직 진열된 상품이 없어요</div>
+      <p id="emptyMsg">곧 새로운 상품이 올라옵니다.</p>
+    </div>
+
+    <footer>
+      <div class="foot-brand">DiCA STORE</div>
+      <div class="foot-sub">명함 속 진열대 · by TM LINK</div>
+      <button class="manage" id="manageBtn">스토어 관리</button>
+    </footer>
+  </div>
+
+  <!-- 스토어 개설 화면 -->
+  <div id="setupView" class="setup" style="display:none">
+    <div class="brand">DiCA STORE</div>
+    <h2>아직 열리지 않은<br>스토어입니다</h2>
+    <p>내 스토어라면 로그인 후 개설하세요.<br>주소: <b id="setupId"></b></p>
+    <button class="google-btn" id="setupLogin">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+      구글로 로그인
+    </button>
+    <div id="setupForm" style="display:none">
+      <input class="f-input" id="setupName" placeholder="스토어 이름 (예: 더고집 정육)" maxlength="30">
+      <input class="f-input" id="setupDesc" placeholder="한 줄 소개 (선택)" maxlength="60" style="margin-top:10px">
+      <button class="submit-btn" id="setupCreate">이 주소로 스토어 개설하기</button>
+    </div>
+  </div>
+
+  <div id="noId" class="setup" style="display:none">
+    <div class="brand">DiCA STORE</div>
+    <h2>스토어 주소가 없어요</h2>
+    <p>주소 뒤에 ?id=스토어아이디 를 붙여 접속하세요.</p>
+  </div>
+</div>
+
+<button class="fab" id="fab">＋ 상품 올리기</button>
+
+<!-- 상세 시트 -->
+<div class="overlay" id="ov1"></div>
+<div class="sheet" id="detailSheet">
+  <div class="grab"></div>
+  <div class="sheet-inner">
+    <img id="dImg" alt="">
+    <h2 id="dTitle"></h2>
+    <div id="dPrice"></div>
+    <p id="dDesc"></p>
+    <a class="buy-btn" id="dBuy" target="_blank" rel="noopener"></a>
+    <div class="owner-row" id="dOwnerRow" style="display:none">
+      <button class="chip" id="dSold"></button>
+      <button class="chip danger" id="dDelete">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 작성 시트 -->
+<div class="overlay" id="ov2"></div>
+<div class="sheet" id="writeSheet">
+  <div class="grab"></div>
+  <div class="sheet-inner">
+    <h2 style="font-family:'GmarketSans';font-size:19px;margin-top:6px">상품 올리기</h2>
+
+    <label class="f-label">상품 사진</label>
+    <button class="photo-pick" id="photoPick">
+      <span style="font-size:26px">📷</span>
+      <span>사진 선택 (자동으로 용량을 줄여요)</span>
+      <img id="photoPrev" style="display:none" alt="">
+    </button>
+    <input type="file" id="photoFile" accept="image/*" style="display:none">
+
+    <label class="f-label">상품명 *</label>
+    <input class="f-input" id="wTitle" maxlength="40" placeholder="예: 토마호크 스테이크 1++ 한정">
+
+    <label class="f-label">가격</label>
+    <input class="f-input" id="wPrice" maxlength="20" placeholder="예: 45,000원 / 문의 / 무료체험">
+
+    <label class="f-label">설명</label>
+    <textarea class="f-area" id="wDesc" maxlength="500" placeholder="상품 소개, 주문 방법 등을 적어주세요"></textarea>
+
+    <label class="f-label">구매 연결 (링크 또는 전화번호)</label>
+    <input class="f-input" id="wLink" placeholder="예: 스마트스토어 주소, 카톡채널, 010-1234-5678">
+    <div class="hint">전화번호를 넣으면 "주문 전화" 버튼, 카카오 링크는 "카톡 주문" 버튼이 됩니다.</div>
+
+    <label class="f-label">게시 기간</label>
+    <select class="f-select" id="wDays">
+      <option value="0">계속 게시 (내릴 때까지)</option>
+      <option value="7">7일 후 자동 내림</option>
+      <option value="14">14일 후 자동 내림</option>
+      <option value="30">30일 후 자동 내림</option>
+    </select>
+
+    <button class="submit-btn" id="wSubmit">진열대에 올리기</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyAZoWSGSA81daZydNgzegct2aaeFbDajr0",
+  authDomain:"mandu-e7c3c.firebaseapp.com",
+  projectId:"mandu-e7c3c",
+  storageBucket:"mandu-e7c3c.firebasestorage.app",
+  messagingSenderId:"196338490174",
+  appId:"1:196338490174:web:78dc77e684945aca362a6f"
+});
+const auth=firebase.auth(), db=firebase.firestore(), storage=firebase.storage();
+const provider=new firebase.auth.GoogleAuthProvider();
+
+const $=id=>document.getElementById(id);
+const storeId=new URLSearchParams(location.search).get('id');
+let storeData=null, currentUser=null, isOwner=false, posts=[], currentPost=null, photoBlob=null;
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ── 구매 버튼 라벨/링크 ── */
+function buyInfo(raw){
+  if(!raw) return null;
+  let v=raw.trim();
+  const digits=v.replace(/[-\s]/g,'');
+  if(/^0\d{8,10}$/.test(digits)) return {href:'tel:'+digits, label:'📞 주문 전화'};
+  if(!/^https?:\/\//i.test(v)) v='https://'+v;
+  if(/kakao/i.test(v)) return {href:v, label:'💬 카톡 주문'};
+  if(/toss\.me/i.test(v)) return {href:v, label:'💸 토스로 결제'};
+  return {href:v, label:'🛒 구매하기'};
+}
+
+/* ── 초기 진입 ── */
+if(!storeId){ $('loading').style.display='none'; $('noId').style.display='block'; }
+else init();
+
+async function init(){
+  try{
+    const doc=await db.collection('dica_stores').doc(storeId).get();
+    $('loading').style.display='none';
+    if(!doc.exists){ showSetup(); return; }
+    storeData=doc.data();
+    renderStore();
+    loadPosts();
+  }catch(e){ $('loading').textContent='불러오지 못했어요. 새로고침 해주세요.'; console.error(e); }
+}
+
+auth.onAuthStateChanged(u=>{
+  currentUser=u;
+  if(storeData) applyOwner();
+  if(u && $('setupView').style.display==='block'){
+    $('setupLogin').style.display='none';
+    $('setupForm').style.display='block';
+  }
+});
+
+function applyOwner(){
+  isOwner=!!(currentUser && storeData && currentUser.uid===storeData.ownerUid);
+  $('fab').classList.toggle('show',isOwner);
+  $('ownerBadge').style.display=isOwner?'inline-block':'none';
+  $('manageBtn').style.display=isOwner?'none':'inline-block';
+  renderGrid();
+}
+
+/* ── 스토어 표시 ── */
+function renderStore(){
+  document.title=storeData.name+' — 디카 스토어';
+  $('storeName').textContent=storeData.name;
+  $('storeDesc').textContent=storeData.desc||'';
+  $('storeDesc').style.display=storeData.desc?'block':'none';
+  $('storeView').style.display='block';
+  applyOwner();
+}
+
+function loadPosts(){
+  db.collection('dica_stores').doc(storeId).collection('posts')
+    .orderBy('createdAt','desc')
+    .onSnapshot(snap=>{
+      posts=snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderGrid();
+    },e=>console.error(e));
+}
+
+function isExpired(p){
+  return p.expiresAt && p.expiresAt.toDate() < new Date();
+}
+
+function renderGrid(){
+  const g=$('grid'); g.innerHTML='';
+  const visible=posts.filter(p=>isOwner||!isExpired(p));
+  $('empty').style.display=visible.length?'none':'block';
+  if(isOwner&&!visible.length) $('emptyMsg').textContent='아래 [＋ 상품 올리기]로 첫 상품을 진열해보세요.';
+  visible.forEach(p=>{
+    const c=document.createElement('div');
+    c.className='card'+(p.soldOut?' sold':'');
+    const exp=isExpired(p);
+    c.innerHTML=`
+      <div class="thumb">
+        <img src="${esc(p.imageUrl)}" loading="lazy" alt="${esc(p.title)}">
+        ${p.soldOut?'<div class="stamp">품절</div>':''}
+        ${exp?'<div class="badge-exp">기간 만료</div>':''}
+      </div>
+      <div class="body">
+        <div class="title">${esc(p.title)}</div>
+        ${p.price?`<span class="price-tag${/원|₩|\d/.test(p.price)?'':' free'}">${esc(p.price)}</span>`:''}
+      </div>`;
+    c.onclick=()=>openDetail(p);
+    g.appendChild(c);
+  });
+}
+
+/* ── 상세 ── */
+function openDetail(p){
+  currentPost=p;
+  $('dImg').src=p.imageUrl;
+  $('dTitle').textContent=p.title;
+  $('dPrice').innerHTML=p.price?`<span class="price-tag">${esc(p.price)}</span>`:'';
+  $('dDesc').textContent=p.desc||'';
+  const b=buyInfo(p.link);
+  $('dBuy').style.display=(b&&!p.soldOut)?'flex':'none';
+  if(b){ $('dBuy').href=b.href; $('dBuy').textContent=b.label; }
+  $('dOwnerRow').style.display=isOwner?'flex':'none';
+  $('dSold').textContent=p.soldOut?'판매 재개':'품절 표시';
+  openSheet('ov1','detailSheet');
+}
+
+$('dSold').onclick=async()=>{
+  await postRef(currentPost.id).update({soldOut:!currentPost.soldOut});
+  toast(currentPost.soldOut?'판매 재개했어요':'품절로 표시했어요');
+  closeSheets();
+};
+$('dDelete').onclick=async()=>{
+  if(!confirm('이 상품을 진열대에서 내릴까요?\n(삭제하면 되돌릴 수 없어요)'))return;
+  try{ if(currentPost.imagePath) await storage.ref(currentPost.imagePath).delete(); }catch(e){}
+  await postRef(currentPost.id).delete();
+  toast('내렸어요');
+  closeSheets();
+};
+function postRef(id){return db.collection('dica_stores').doc(storeId).collection('posts').doc(id);}
+
+/* ── 시트 열고닫기 ── */
+function openSheet(ov,sh){$(ov).classList.add('show');$(sh).classList.add('show');document.body.style.overflow='hidden';}
+function closeSheets(){['ov1','ov2','detailSheet','writeSheet'].forEach(i=>$(i).classList.remove('show'));document.body.style.overflow='';}
+$('ov1').onclick=closeSheets; $('ov2').onclick=closeSheets;
+
+/* ── 사진 선택 + 압축 (200KB webp 목표) ── */
+$('photoPick').onclick=()=>$('photoFile').click();
+$('photoFile').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  toast('사진 처리 중…');
+  photoBlob=await compress(f);
+  const url=URL.createObjectURL(photoBlob);
+  $('photoPrev').src=url; $('photoPrev').style.display='block';
+};
+function compress(file){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1080;
+      let w=img.width,h=img.height;
+      if(Math.max(w,h)>max){const r=max/Math.max(w,h);w=Math.round(w*r);h=Math.round(h*r);}
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      let q=0.82;
+      const tryQ=()=>cv.toBlob(b=>{
+        if(b.size>200*1024&&q>0.4){q-=0.12;tryQ();}else res(b);
+      },'image/webp',q);
+      tryQ();
+    };
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+/* ── 올리기 ── */
+$('fab').onclick=()=>{
+  photoBlob=null;$('photoPrev').style.display='none';
+  ['wTitle','wPrice','wDesc','wLink'].forEach(i=>$(i).value='');
+  $('wDays').value='0';
+  openSheet('ov2','writeSheet');
+};
+$('wSubmit').onclick=async()=>{
+  const title=$('wTitle').value.trim();
+  if(!photoBlob){toast('상품 사진을 선택해주세요');return;}
+  if(!title){toast('상품명을 입력해주세요');return;}
+  $('wSubmit').disabled=true;$('wSubmit').textContent='올리는 중…';
+  try{
+    const path=`dica_stores/${storeId}/${Date.now()}.webp`;
+    const snap=await storage.ref(path).put(photoBlob,{contentType:'image/webp'});
+    const imageUrl=await snap.ref.getDownloadURL();
+    const days=parseInt($('wDays').value,10);
+    await db.collection('dica_stores').doc(storeId).collection('posts').add({
+      title, price:$('wPrice').value.trim(), desc:$('wDesc').value.trim(),
+      link:$('wLink').value.trim(), imageUrl, imagePath:path,
+      soldOut:false,
+      expiresAt: days? firebase.firestore.Timestamp.fromDate(new Date(Date.now()+days*864e5)) : null,
+      ownerUid:currentUser.uid,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('진열대에 올렸어요 🎉');
+    closeSheets();
+  }catch(e){console.error(e);toast('올리지 못했어요. 다시 시도해주세요.');}
+  $('wSubmit').disabled=false;$('wSubmit').textContent='진열대에 올리기';
+};
+
+/* ── 로그인 / 관리 ── */
+async function login(){
+  try{ await auth.signInWithPopup(provider); }
+  catch(e){ try{ await auth.signInWithRedirect(provider); }catch(e2){ toast('로그인에 실패했어요'); } }
+}
+$('manageBtn').onclick=async()=>{
+  if(!currentUser){ await login(); return; }
+  if(currentUser.uid!==storeData.ownerUid) toast('이 스토어의 관리자가 아니에요');
+};
+$('ownerBadge').onclick=async()=>{ await auth.signOut(); toast('로그아웃했어요'); };
+$('shareBtn').onclick=async()=>{
+  const url=location.origin+location.pathname+'?id='+storeId;
+  if(navigator.share){ try{await navigator.share({title:storeData?storeData.name:'디카 스토어',url});return;}catch(e){} }
+  await navigator.clipboard.writeText(url); toast('링크를 복사했어요');
+};
+
+/* ── 개설 ── */
+function showSetup(){
+  $('setupView').style.display='block';
+  $('setupId').textContent=storeId;
+  if(currentUser){ $('setupLogin').style.display='none'; $('setupForm').style.display='block'; }
+}
+$('setupLogin').onclick=login;
+$('setupCreate').onclick=async()=>{
+  const name=$('setupName').value.trim();
+  if(!name){toast('스토어 이름을 입력해주세요');return;}
+  try{
+    await db.collection('dica_stores').doc(storeId).set({
+      name, desc:$('setupDesc').value.trim(),
+      ownerUid:currentUser.uid,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    location.reload();
+  }catch(e){console.error(e);toast('개설하지 못했어요. 보안 규칙을 확인해주세요.');}
+};
+</script>
+</body>
+</html>
